@@ -43,8 +43,7 @@ with st.expander("🚀 Istruzioni e Script per Console Browser", expanded=False)
     
     col_a, col_b = st.columns(2)
     
-    script_1 = """// Rimuove conflitti con sessioni precedenti
-if (window.myInterval) clearInterval(window.myInterval);
+    script_1 = """if (window.myInterval) clearInterval(window.myInterval);
 window.allProfiles = window.allProfiles || new Set();
 
 window.myInterval = setInterval(() => {
