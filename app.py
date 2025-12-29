@@ -19,7 +19,7 @@ def clean_username(text):
         user = text.replace('@', '').strip()
     
     blacklist = [
-        'about', 'developers', 'help', 'legal', 'explore', 'reels', 
+        'about', 'archive', 'developers', 'help', 'legal', 'explore', 'reels', 
         'direct', 'accounts', 'p', 'stories', 'blog', 'meta', 'privacy', 'web'
     ]
     
@@ -30,25 +30,35 @@ def clean_username(text):
     return None
 
 st.title("🕵️‍♂️ Instagram Ghost Finder & Ranker")
-st.caption("Versione 2.9 - Script integrati con pulsanti di copia")
+st.caption("Versione 3.0 - Codice pulito con Raw Strings")
 
-# --- SEZIONE SCRIPT (Novità) ---
+# --- SIDEBAR ---
+st.sidebar.title("Configurazione Files")
+fol_file = st.sidebar.file_uploader("1. Carica followers_1.json", type="json")
+fng_file = st.sidebar.file_uploader("2. Carica following.json (Opzionale)", type="json")
+
+# --- NUOVO POSIZIONAMENTO MESSAGGIO DI AVVIO ---
+if not fol_file:
+    st.info("👈 Per iniziare, carica il file 'followers_1.json' nella barra laterale a sinistra.")
+    st.stop() # Questo blocca l'esecuzione del resto dell'app finché non carichi il file
+
+# --- SEZIONE SCRIPT (Ottimizzata) ---
 with st.expander("🚀 Istruzioni e Script per Console Browser", expanded=False):
     st.markdown("""
     1. Apri Instagram da PC e clicca sui 'Mi piace' di un post.
     2. Premi **F12** (o tasto destro -> Ispeziona) e vai in **Console**.
-    3. Copia e incolla lo **Step 1**, poi scorri la lista fino in fondo.
-    4. Copia e incolla lo **Step 2** per ottenere i link da inserire qui sotto.
+    3. Copia lo **Step 1** (tasto in alto a destra nel riquadro), incollalo in console e scorri la lista.
+    4. Quando hai finito, copia lo **Step 2** e incollalo in console per copiare i link.
     """)
     
     col_a, col_b = st.columns(2)
     
-    script_1 = """if (window.myInterval) clearInterval(window.myInterval);
+    # Script 1: Cattura profili
+    script_1 = r"""if (window.myInterval) clearInterval(window.myInterval);
 window.allProfiles = window.allProfiles || new Set();
 
 window.myInterval = setInterval(() => {
     document.querySelectorAll('a[role="link"]').forEach(a => {
-        // Filtra solo i profili utente validi
         if(a.href.includes("instagram.com/") && !a.href.includes("/p/") && !a.href.includes("/reels/") && !a.href.includes("/explore/")) {
             window.allProfiles.add(a.href);
         }
@@ -58,32 +68,23 @@ window.myInterval = setInterval(() => {
 
 console.log("✅ Script avviato! Scorri LENTAMENTE la lista. Quando hai finito, usa il secondo comando.");"""
 
-    script_2 = """clearInterval(window.myInterval);
+    # Script 2: Estrazione e copia (con protezione \n)
+    script_2 = r"""clearInterval(window.myInterval);
 if (window.allProfiles && window.allProfiles.size > 0) {
     copy([...window.allProfiles].join('\n'));
     console.log("✅ " + window.allProfiles.size + " link copiati! Incollali nell'app.");
-    // Svuota la memoria per il prossimo post
     window.allProfiles = new Set();
 } else {
     console.error("❌ Errore: Nessun profilo catturato.");
 }"""
 
     with col_a:
+        st.subheader("Step 1: Avvia Cattura")
         st.code(script_1, language="javascript")
-        if st.button("Copia Step 1 📋"):
-            st.write('<script>navigator.clipboard.writeText(`' + script_1 + '`)</script>', unsafe_allow_html=True)
-            st.success("Copiato! Incollalo in console.")
 
     with col_b:
+        st.subheader("Step 2: Copia Risultati")
         st.code(script_2, language="javascript")
-        if st.button("Copia Step 2 📋"):
-            st.write('<script>navigator.clipboard.writeText(`' + script_2 + '`)</script>', unsafe_allow_html=True)
-            st.success("Copiato! Incollalo per copiare i link.")
-
-# --- SIDEBAR ---
-st.sidebar.title("Configurazione Files")
-fol_file = st.sidebar.file_uploader("1. Carica followers_1.json", type="json")
-fng_file = st.sidebar.file_uploader("2. Carica following.json (Opzionale)", type="json")
 
 # --- LOGICA PRINCIPALE ---
 if fol_file:
@@ -111,19 +112,88 @@ if fol_file:
                 if u_val:
                     following_list.add(u_val)
 
-    # Input Like
+ # --- LOGICA ANALISI INTERAZIONI CON SVUOTAMENTO CAMPO FUNZIONANTE ---
     st.divider()
     st.subheader("Analisi Interazioni")
-    manual_input = st.text_area("Incolla qui i link (Step 2):", height=150)
     
-    like_counts = {}
-    if manual_input:
-        lines = manual_input.splitlines()
-        unique_users_in_input = {clean_username(line) for line in lines if clean_username(line)}
-        for u in unique_users_in_input:
-            if u:
-                like_counts[u] = like_counts.get(u, 0) + 1
+    if 'sets_di_like' not in st.session_state:
+        st.session_state.sets_di_like = []
+    
+    # Questo contatore serve per "resettare" il campo di testo cambiando la sua chiave
+    if 'input_counter' not in st.session_state:
+        st.session_state.input_counter = 0
 
+    # Creiamo una chiave dinamica: ogni volta che il contatore aumenta, Streamlit vede un nuovo widget vuoto
+    testarea_key = f"input_area_{st.session_state.input_counter}"
+
+    manual_input = st.text_area("Incolla qui i link (Step 2):", 
+                                height=150, 
+                                key=testarea_key)
+    
+    nome_set_input = st.text_input("Titolo del set (es: Post 12/11) - Opzionale:", 
+                                   key=f"nome_set_{st.session_state.input_counter}",
+                                   placeholder="Lascia vuoto per nome automatico")
+
+    if st.button("Aggiungi questi Like ➕", use_container_width=True):
+        if manual_input.strip():
+            lines = manual_input.splitlines()
+            nuovi_utenti = {clean_username(line) for line in lines if clean_username(line)}
+            nuovi_utenti.discard(None)
+            
+            if nuovi_utenti:
+                if not nome_set_input.strip():
+                    titolo_finale = f"Set {len(st.session_state.sets_di_like) + 1} ({len(nuovi_utenti)} profili)"
+                else:
+                    titolo_finale = f"{nome_set_input.strip()} ({len(nuovi_utenti)} profili)"
+                
+                st.session_state.sets_di_like.append({
+                    'nome': titolo_finale,
+                    'utenti': nuovi_utenti
+                })
+                
+                # AUMENTIAMO IL CONTATORE: questo svuota istantaneamente i campi di testo
+                st.session_state.input_counter += 1
+                st.success(f"'{titolo_finale}' aggiunto!")
+                st.rerun()
+        else:
+            st.warning("Il box è vuoto!")
+
+# --- VISUALIZZAZIONE E GESTIONE DEI SET (ORDINE RECENTE IN ALTO) ---
+    like_counts = {}
+    if st.session_state.sets_di_like:
+        st.write("### 📦 Elenco Set Caricati:")
+        
+        # Invertiamo l'ordine della lista per avere il più recente in alto
+        # Usiamo reversed() per la visualizzazione ma manteniamo gli indici corretti
+        sets_visualizzati = list(enumerate(st.session_state.sets_di_like))[::-1]
+
+        for original_index, set_data in sets_visualizzati:
+            # Calcoliamo i like per il totale (indipendentemente dall'ordine visivo)
+            for u in set_data['utenti']:
+                like_counts[u] = like_counts.get(u, 0) + 1
+            
+            # Layout in linea: Titolo e Dettagli | Espansore | Elimina
+            col_info, col_expand, col_del = st.columns([3, 2, 0.5])
+            
+            with col_info:
+                st.info(f"📍 {set_data['nome']}")
+            
+            with col_expand:
+                lista_alfabetica = sorted(list(set_data['utenti']))
+                # L'expander ora è molto più compatto
+                with st.expander(f"🔍 {len(lista_alfabetica)} profili"):
+                    st.caption(", ".join([f"@{u}" for u in lista_alfabetica]))
+            
+            with col_del:
+                # Usiamo l'indice originale per eliminare l'elemento corretto
+                if st.button("🗑️", key=f"del_{original_index}"):
+                    st.session_state.sets_di_like.pop(original_index)
+                    st.rerun()
+        st.divider()
+    else:
+        like_counts = {}
+        st.info("Nessun set di like aggiunto.")
+        
     # Metriche
     follower_attivi = [u for u in followers_info if like_counts.get(u, 0) > 0]
     ghost_follower = [u for u in followers_info if like_counts.get(u, 0) == 0]
@@ -167,5 +237,3 @@ if fol_file:
         with st.expander(f"🚫 Chi non ti ricambia ({len(not_following_back)})"):
             for user in sorted(not_following_back):
                 st.markdown(f"- [@{user}](https://www.instagram.com/{user}/)")
-else:
-    st.info("👈 Carica il file followers_1.json per iniziare.")
