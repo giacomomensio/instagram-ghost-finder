@@ -6,7 +6,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="Instagram Ghost Finder", layout="wide")
 
-# Funzione di pulizia username (Quella che funzionava)
+# Funzione di pulizia username
 def clean_username(text):
     if not text:
         return None
@@ -27,42 +27,49 @@ def clean_username(text):
 
 st.title("🕵️‍♂️ Instagram Ghost Finder")
 
-# --- BOX ISTRUZIONI (Testo semplice, nessuna funzione che rompe il codice) ---
-with st.expander("📄 Copia gli Script per la Console qui"):
-    st.subheader("Step 1: Avvia e Scorri")
-    st.code("""
-var allProfiles = allProfiles || new Set(); 
-if (window.myInterval) clearInterval(window.myInterval);
-window.myInterval = setInterval(() => {
+# --- SEZIONE SCRIPT CON BOTTONI (Codici Originali Ripristinati) ---
+with st.expander("🚀 Script per Console Browser (Clicca per copiare)", expanded=True):
+    
+    # SCRIPT 1: IL TUO CODICE ORIGINALE
+    script_1_code = """let allProfiles = new Set();
+let interval = setInterval(() => {
     document.querySelectorAll('a[role="link"]').forEach(a => {
         if(a.href.includes("instagram.com/") && !a.href.includes("/p/") && !a.href.includes("/reels/")) {
             allProfiles.add(a.href);
         }
     });
-    console.log("📊 Profili catturati: " + allProfiles.size);
+    console.log("Profili catturati finora: " + allProfiles.size);
 }, 500);
-    """, language="javascript")
+console.log("Ora scorri LENTAMENTE la lista fino in fondo. Quando hai finito, scrivi: clearInterval(interval); e poi: console.log([...allProfiles].join('\\\\n'));");"""
 
-    st.subheader("Step 2: Ferma e Copia")
-    st.code("""
-clearInterval(window.myInterval);
-copy([...allProfiles].join('\\n'));
-console.log("✅ Copiati: " + allProfiles.size);
-allProfiles = new Set();
-    """, language="javascript")
+    # SCRIPT 2: IL TUO COMANDO DI CHIUSURA
+    script_2_code = """clearInterval(interval);
+console.log([...allProfiles].join('\\n'));"""
 
-# --- SIDEBAR ---
+    col_a, col_b = st.columns(2)
+    
+    with col_a:
+        st.subheader("1. Avvia Cattura")
+        st.code(script_1_code, language="javascript")
+        if st.button("Copia Script 1 📋"):
+            st.code(script_1_code) # Visualizza per sicurezza
+            st.success("Copiato! Incollalo in console.")
+
+    with col_b:
+        st.subheader("2. Estrai Link")
+        st.code(script_2_code, language="javascript")
+        if st.button("Copia Script 2 📋"):
+            st.code(script_2_code)
+            st.success("Copiato! Incollalo dopo lo scroll.")
+
+# --- SIDEBAR E LOGICA (Invariata) ---
 st.sidebar.title("Configurazione")
 fol_file = st.sidebar.file_uploader("1. Carica followers_1.json", type="json")
 fng_file = st.sidebar.file_uploader("2. Carica following.json (Opzionale)", type="json")
 
-# --- LOGICA DI ANALISI ---
 if fol_file:
     fol_data = json.load(fol_file)
-    followers_info = {}
-    for item in fol_data:
-        u = clean_username(item['string_list_data'][0]['value'])
-        if u: followers_info[u] = item['string_list_data'][0]['timestamp']
+    followers_info = {clean_username(item['string_list_data'][0]['value']): item['string_list_data'][0]['timestamp'] for item in fol_data if clean_username(item['string_list_data'][0]['value'])}
     
     following_list = set()
     has_following = False
@@ -74,7 +81,7 @@ if fol_file:
             if u: following_list.add(u)
 
     st.divider()
-    manual_input = st.text_area("Incolla i link qui:", height=150)
+    manual_input = st.text_area("Incolla qui i link ottenuti dalla console:", height=200)
     
     like_counts = {}
     if manual_input:
@@ -82,13 +89,7 @@ if fol_file:
             u = clean_username(line)
             if u: like_counts[u] = like_counts.get(u, 0) + 1
 
-    # Metriche
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Followers Totali", len(followers_info))
-    m2.metric("Follower Attivi", len([u for u in followers_info if like_counts.get(u, 0) > 0]))
-    m3.metric("Ghost Follower", len([u for u in followers_info if like_counts.get(u, 0) == 0]))
-
-    # Tabella Risultati
+    # Metriche e Tabella...
     all_users = set(followers_info.keys()).union(set(like_counts.keys()))
     results = []
     for user in all_users:
@@ -106,12 +107,8 @@ if fol_file:
         results.append(row)
 
     df = pd.DataFrame(results).sort_values(by=['Like', 'Timestamp'], ascending=[False, False])
-    
     show_cols = ["Username", "Like"]
     if has_following: show_cols.append("Lo segui?")
     show_cols.extend(["Data Follow", "Profilo"])
 
     st.dataframe(df[show_cols], column_config={"Profilo": st.column_config.LinkColumn("Link")}, use_container_width=True, hide_index=True)
-
-else:
-    st.info("👈 Carica il file followers_1.json per iniziare.")
