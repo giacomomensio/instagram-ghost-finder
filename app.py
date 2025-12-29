@@ -6,10 +6,10 @@ from datetime import datetime
 
 st.set_page_config(page_title="Instagram Ghost Finder", layout="wide")
 
+# Funzione per pulire gli username
 def clean_username(text):
     if not text:
         return None
-    # Rimuove URL, chiocciole e spazi
     text = str(text).strip().lower()
     text = text.split('?')[0].split('#')[0].rstrip('/')
     match = re.search(r"instagram\.com/([^/]+)", text)
@@ -24,23 +24,66 @@ def clean_username(text):
     ]
     
     if user and user not in blacklist and user != "giacomomensio":
-        # Rimuove eventuali caratteri non validi rimasti
         user = user.split(' ')[0] 
         if not user.endswith(('.com', '.net', '.it')):
             return user
     return None
 
 st.title("🕵️‍♂️ Instagram Ghost Finder & Ranker")
-st.caption("Versione 2.8 - Fix estrazione Following")
+st.caption("Versione 2.9 - Script integrati con pulsanti di copia")
+
+# --- SEZIONE SCRIPT (Novità) ---
+with st.expander("🚀 Istruzioni e Script per Console Browser", expanded=False):
+    st.markdown("""
+    1. Apri Instagram da PC e clicca sui 'Mi piace' di un post.
+    2. Premi **F12** (o tasto destro -> Ispeziona) e vai in **Console**.
+    3. Copia e incolla lo **Step 1**, poi scorri la lista fino in fondo.
+    4. Copia e incolla lo **Step 2** per ottenere i link da inserire qui sotto.
+    """)
+    
+    col_a, col_b = st.columns(2)
+    
+    script_1 = """if (window.myInterval) clearInterval(window.myInterval);
+window.allProfiles = window.allProfiles || new Set();
+window.myInterval = setInterval(() => {
+    document.querySelectorAll('a[role="link"]').forEach(a => {
+        if(a.href.includes("instagram.com/") && !a.href.includes("/p/") && !a.href.includes("/reels/")) {
+            window.allProfiles.add(a.href);
+        }
+    });
+    console.log("📊 Profili in memoria: " + window.allProfiles.size);
+}, 500);
+console.log("✅ Script avviato! Scorri la lista...");"""
+
+    script_2 = """clearInterval(window.myInterval);
+if (window.allProfiles && window.allProfiles.size > 0) {
+    copy([...window.allProfiles].join('\\n'));
+    console.log("✅ " + window.allProfiles.size + " link copiati!");
+    window.allProfiles = new Set();
+} else {
+    console.error("❌ Nessun profilo trovato.");
+}"""
+
+    with col_a:
+        st.code(script_1, language="javascript")
+        if st.button("Copia Step 1 📋"):
+            st.write('<script>navigator.clipboard.writeText(`' + script_1 + '`)</script>', unsafe_allow_html=True)
+            st.success("Copiato! Incollalo in console.")
+
+    with col_b:
+        st.code(script_2, language="javascript")
+        if st.button("Copia Step 2 📋"):
+            st.write('<script>navigator.clipboard.writeText(`' + script_2 + '`)</script>', unsafe_allow_html=True)
+            st.success("Copiato! Incollalo per copiare i link.")
 
 # --- SIDEBAR ---
-st.sidebar.title("Configurazione")
+st.sidebar.title("Configurazione Files")
 fol_file = st.sidebar.file_uploader("1. Carica followers_1.json", type="json")
 fng_file = st.sidebar.file_uploader("2. Carica following.json (Opzionale)", type="json")
 
 # --- LOGICA PRINCIPALE ---
 if fol_file:
-    # 1. Carica Followers
+    # Caricamento Followers
     fol_data = json.load(fol_file)
     followers_info = {}
     for item in fol_data:
@@ -48,7 +91,7 @@ if fol_file:
         if u:
             followers_info[u] = item['string_list_data'][0]['timestamp']
     
-    # 2. Carica Following (Fix per il tuo file)
+    # Caricamento Following
     following_list = set()
     has_following = False
     if fng_file:
@@ -56,20 +99,18 @@ if fol_file:
         fng_data = json.load(fng_file)
         raw_fng = fng_data.get('relationships_following', [])
         for entry in raw_fng:
-            # Proviamo prima dal campo 'title' (che è presente nel tuo file)
             u_title = clean_username(entry.get('title'))
             if u_title:
                 following_list.add(u_title)
-            # Per sicurezza controlliamo anche string_list_data
             elif 'string_list_data' in entry and entry['string_list_data']:
                 u_val = clean_username(entry['string_list_data'][0].get('value'))
                 if u_val:
                     following_list.add(u_val)
 
-    # --- SEZIONE INPUT LIKE ---
+    # Input Like
     st.divider()
     st.subheader("Analisi Interazioni")
-    manual_input = st.text_area("Incolla qui i link ottenuti dalla console:", height=200)
+    manual_input = st.text_area("Incolla qui i link (Step 2):", height=150)
     
     like_counts = {}
     if manual_input:
@@ -79,7 +120,7 @@ if fol_file:
             if u:
                 like_counts[u] = like_counts.get(u, 0) + 1
 
-    # --- CALCOLO METRICHE ---
+    # Metriche
     follower_attivi = [u for u in followers_info if like_counts.get(u, 0) > 0]
     ghost_follower = [u for u in followers_info if like_counts.get(u, 0) == 0]
 
@@ -89,13 +130,12 @@ if fol_file:
     m2.metric("Follower Attivi", len(follower_attivi))
     m3.metric("Ghost Follower", len(ghost_follower))
 
-    # --- TABELLA ---
+    # Tabella
     all_users = set(followers_info.keys()).union(set(like_counts.keys()))
     results = []
     for user in all_users:
         likes = like_counts.get(user, 0)
         follow_time = followers_info.get(user)
-        
         row = {
             "Username": user,
             "Like": likes,
@@ -103,11 +143,8 @@ if fol_file:
             "Timestamp": follow_time if follow_time else 9999999999,
             "Profilo": f"https://www.instagram.com/{user}/"
         }
-        
         if has_following:
-            # Controllo incrociato pulito
             row["Lo segui?"] = "Sì" if user in following_list else "NON LO SEGUI ⚠️"
-            
         results.append(row)
 
     df = pd.DataFrame(results).sort_values(by=['Like', 'Timestamp'], ascending=[False, False])
@@ -119,17 +156,12 @@ if fol_file:
     cols_to_show.extend(["Data Follow", "Profilo"])
     
     st.subheader("Classifica Dettagliata")
-    st.dataframe(
-        df[cols_to_show],
-        column_config={"Profilo": st.column_config.LinkColumn("Link")},
-        use_container_width=True, hide_index=True
-    )
+    st.dataframe(df[cols_to_show], column_config={"Profilo": st.column_config.LinkColumn("Link")}, use_container_width=True, hide_index=True)
 
     if has_following:
         not_following_back = [user for user in following_list if user not in followers_info]
-        with st.expander(f"🚫 Chi non ti ricambia il follow ({len(not_following_back)})"):
+        with st.expander(f"🚫 Chi non ti ricambia ({len(not_following_back)})"):
             for user in sorted(not_following_back):
                 st.markdown(f"- [@{user}](https://www.instagram.com/{user}/)")
-
 else:
-    st.info("👈 Carica il file followers_1.json nella sidebar per iniziare.")
+    st.info("👈 Carica il file followers_1.json per iniziare.")
