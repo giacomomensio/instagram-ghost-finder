@@ -187,21 +187,21 @@ if has_following:
         for user in sorted(not_following_back):
             st.markdown(f"- [@{user}](https://www.instagram.com/{user}/)")
 
-# --- ESPORTAZIONE UNIFICATA OTTIMIZZATA PER MOBILE ---
-def generate_unified_html(df_full, unfollowers):
+# --- ESPORTAZIONE UNIFICATA OTTIMIZZATA PER MOBILE (CON FIX CRASH) ---
+def generate_unified_html(df_full, unfollowers=None):
     now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    if unfollowers is None:
+        unfollowers = []
     
-    # Prepariamo i dati: creiamo la colonna con lo username cliccabile
+    # Prepariamo i dati
     df_export = df_full.copy()
     df_export['Username'] = df_export.apply(
         lambda row: f'<a class="user-link" href="{row["Profilo"]}" target="_blank">@{row["Username"]}</a>', 
         axis=1
     )
     
-    # Rimuoviamo le colonne ridondanti o tecniche
+    # Pulizia colonne
     df_export = df_export.drop(columns=['Timestamp', 'Profilo'], errors='ignore')
-    
-    # Riordiniamo le colonne per mettere lo Username all'inizio
     cols = ['Username'] + [c for c in df_export.columns if c != 'Username']
     df_export = df_export[cols]
     
@@ -211,49 +211,91 @@ def generate_unified_html(df_full, unfollowers):
     <html>
     <head>
         <meta charset='UTF-8'>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <style>
             body {{ 
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-                margin: 0; padding: 20px; background-color: #fafafa; color: #262626;
+                margin: 0; padding: 10px; background-color: #fafafa; color: #262626;
             }}
-            .container {{ max-width: 800px; margin: auto; }}
-            header {{ border-bottom: 1px solid #dbdbdb; margin-bottom: 20px; padding-bottom: 10px; }}
-            h1 {{ font-weight: 300; font-size: 1.8rem; margin: 0; }}
-            h2 {{ font-size: 1.1rem; margin-top: 30px; display: flex; align-items: center; justify-content: space-between; }}
-            .status-tag {{ font-size: 0.75rem; background: #e0e0e0; padding: 3px 10px; border-radius: 15px; font-weight: normal; }}
+            .container {{ max-width: 100%; margin: auto; }}
+            header {{ border-bottom: 1px solid #dbdbdb; margin-bottom: 15px; padding-bottom: 5px; }}
+            h1 {{ font-weight: 300; font-size: 1.2rem; margin: 0; }}
+            h2 {{ font-size: 0.95rem; margin: 15px 0 8px 0; }}
             
-            /* Tabella Scorrevole */
             .table-wrapper {{ 
-                max-height: 500px; overflow-y: auto; background: white;
-                border: 1px solid #dbdbdb; border-radius: 8px;
+                width: 100%; 
+                max-height: 380px; 
+                overflow-y: auto; 
+                overflow-x: hidden; 
+                background: white;
+                border: 1px solid #dbdbdb; 
+                border-radius: 8px;
+                -webkit-overflow-scrolling: touch;
             }}
-            .main-table {{ border-collapse: collapse; width: 100%; font-size: 0.95rem; }}
-            .main-table th {{ 
-                background-color: #ffffff; position: sticky; top: 0; z-index: 10; 
-                padding: 12px; border-bottom: 2px solid #dbdbdb; text-align: left;
-            }}
-            .main-table td {{ padding: 12px; border-bottom: 1px solid #f0f0f0; }}
             
-            /* Link Username Cliccabile */
+            .main-table {{ 
+                border-collapse: collapse; 
+                width: 100%; 
+                font-size: 0.85rem; /* Font leggermente aumentato */
+                table-layout: fixed;
+            }}
+            
+            .main-table th {{
+                position: sticky; 
+                top: 0;
+                background: #f8f8f8;
+                z-index: 1;
+                border-bottom: 2px solid #dbdbdb;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+            }}
+
+            .main-table th, .main-table td {{ 
+                padding: 10px 4px; 
+                border-bottom: 1px solid #eee; 
+                text-align: center;
+                vertical-align: middle;
+            }}
+            
+            /* GESTIONE COLONNE */
+            /* 1. Username: Più spazio ora che i Like sono stretti */
+            .main-table th:nth-child(1), .main-table td:nth-child(1) {{ 
+                width: 45%; 
+                text-align: left; 
+                padding-left: 8px;
+            }}
+            
+            /* 2. Like: Colonna molto stretta */
+            .main-table th:nth-child(2), .main-table td:nth-child(2) {{ 
+                width: 15%; 
+            }}
+            
+            /* Altre colonne (Data Follow, Lo segui?) */
+            .main-table th:nth-of-type(n+3), .main-table td:nth-of-type(n+3) {{ 
+                width: 20%; 
+                font-size: 0.75rem;
+            }}
+
             .user-link {{ 
                 color: #0095f6 !important; 
                 text-decoration: none; 
                 font-weight: 600;
-                display: block; /* Aumenta l'area cliccabile su mobile */
+                display: block; 
+                white-space: nowrap; 
+                overflow: hidden; 
+                text-overflow: ellipsis;
             }}
             
-            /* Sezione Non Ricambiano */
             .unfollow-section {{ 
-                background: white; border: 1px solid #dbdbdb; border-radius: 8px; padding: 15px;
+                background: white; border: 1px solid #dbdbdb; border-radius: 8px; padding: 8px;
             }}
             .unfollow-item {{ 
-                display: inline-block; padding: 8px 12px; margin: 4px;
-                background: #fdfdfd; border: 1px solid #efefef; border-radius: 6px;
+                display: inline-block; padding: 6px 8px; margin: 2px;
+                background: #fdfdfd; border: 1px solid #efefef; border-radius: 4px; 
+                font-size: 0.8rem;
             }}
-            .unfollow-item a {{ color: #262626; text-decoration: none; font-size: 0.9rem; }}
-            
-            .meta-info {{ color: #8e8e8e; font-size: 0.8rem; }}
+            .unfollow-item a {{ color: #262626; text-decoration: none; font-weight: 500; }}
+            .meta-info {{ color: #8e8e8e; font-size: 0.65rem; }}
         </style>
     </head>
     <body>
@@ -263,35 +305,39 @@ def generate_unified_html(df_full, unfollowers):
                 <p class="meta-info">Generato il: {now}</p>
             </header>
 
-            <h2>📊 Classifica Followers <span class="status-tag">{len(df_export)} totali</span></h2>
+            <h2>📊 Classifica ({len(df_export)})</h2>
             <div class="table-wrapper">
                 {table_html}
             </div>
-
-            <h2>🚫 Non Ricambiano <span class="status-tag">{len(unfollowers)} utenti</span></h2>
-            <div class="unfollow-section">
     """
-    for u in sorted(unfollowers):
+
+    if unfollowers:
         html += f"""
-            <div class="unfollow-item">
-                <a href="https://www.instagram.com/{u}/" target="_blank"><strong>@{u}</strong></a>
-            </div>
+            <h2>🚫 Non Ricambiano ({len(unfollowers)})</h2>
+            <div class="unfollow-section">
         """
+        for u in sorted(unfollowers):
+            html += f"""
+                <div class="unfollow-item">
+                    <a href="https://www.instagram.com/{u}/" target="_blank">@{u}</a>
+                </div>
+            """
+        html += "</div>"
     
     html += """
-            </div>
-            <footer style="margin-top: 40px; text-align: center; color: #dbdbdb; font-size: 0.7rem;">
-                Creato con Instagram Ghost Finder
-            </footer>
         </div>
     </body>
     </html>
     """
     return html
 
+# --- SEZIONE PULSANTE (UPDATE) ---
 st.divider()
 if st.button("Genera File Report Unificato 📄", use_container_width=True):
-    full_html = generate_unified_html(df, not_following_back)
+    # Passiamo la lista solo se esiste, altrimenti passiamo None o lista vuota
+    lista_unfollowers = not_following_back if has_following else []
+    full_html = generate_unified_html(df, lista_unfollowers)
+    
     st.download_button(
         label="Scarica Report Completo (HTML)",
         data=full_html,
