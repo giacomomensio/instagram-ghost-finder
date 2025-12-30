@@ -3,27 +3,7 @@ import pandas as pd
 import json
 import re
 from datetime import datetime
-
-# --- CUSTOM CSS TO MAKE COPY BUTTON ALWAYS VISIBLE ---
-st.markdown("""
-    <style>
-        /* Force the copy button to be visible and more accessible on mobile */
-        button[title="Copy to clipboard"] {
-            opacity: 1 !important;
-            visibility: visible !important;
-            background-color: rgba(255, 255, 255, 0.2) !important;
-            border-radius: 4px !important;
-            right: 10px !important;
-            top: 10px !important;
-        }
-        
-        /* Optional: make the code block background slightly different to stand out */
-        .stCodeBlock {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-        }
-    </style>
-""", unsafe_allow_html=True)
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Instagram Ghost Finder", layout="wide")
 
@@ -317,3 +297,33 @@ if st.button("Genera File Report Unificato 📄", use_container_width=True):
         mime="text/html",
         use_container_width=True
     )
+# --- FINAL LINE OF APP.PY ---
+components.html(
+    """
+    <script>
+    const forceVisible = () => {
+        const doc = window.parent.document;
+        const buttons = doc.querySelectorAll('button[title="Copy to clipboard"]');
+        buttons.forEach(btn => {
+            btn.style.opacity = "1";
+            btn.style.visibility = "visible";
+            btn.style.display = "block";
+            
+            // Visual style: Light background and Blue icon to stand out
+            btn.style.backgroundColor = "rgba(0, 149, 246, 0.1)"; 
+            btn.style.border = "1px solid rgba(0, 149, 246, 0.3)";
+            btn.style.borderRadius = "4px";
+            
+            const icon = btn.querySelector('svg');
+            if(icon) {
+                icon.style.fill = "#0095f6"; 
+                icon.style.opacity = "1";
+            }
+        });
+    };
+    // Run every second to catch buttons when expanders are opened
+    setInterval(forceVisible, 1000);
+    </script>
+    """,
+    height=0,
+)
