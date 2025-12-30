@@ -44,7 +44,7 @@ if not fol_file:
     st.stop() 
 
 # --- SECTION: USER GUIDE ---
-with st.expander("📖 How to use this tool (Read first)", expanded=True):
+with st.expander("📖 How to use this tool (Read first)", expanded=False):
     st.markdown("""
     ### 1. Data Collection & Files
     * **Mandatory:** Upload `followers_1.json`. This is required to see your follower list and calculate "Follower since" dates.
