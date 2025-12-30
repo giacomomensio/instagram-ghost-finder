@@ -3,7 +3,6 @@ import pandas as pd
 import json
 import re
 from datetime import datetime
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Instagram Ghost Finder", layout="wide")
 
@@ -69,6 +68,7 @@ with st.expander("🚀 Smart Bookmarks Setup", expanded=False):
         3. Scroll the list to the end.
         4. Click **`++2 COPY`** and paste the links in the box below.
         """)
+        st.info("💡 **Tip:** Look for the small **copy icon** that appears in the top-right of the boxes below when you hover or tap.")
         st.write("**Code for START:**")
         st.code(js_start, language="javascript")
         st.write("**Code for COPY:**")
@@ -89,6 +89,7 @@ with st.expander("🚀 Smart Bookmarks Setup", expanded=False):
         3. Select **`++1 START`**, then scroll the list.
         4. When done, type **`++`** again and select **`++2 COPY`**.
         """)
+        st.info("💡 **Tip:** Look for the small **copy icon** that appears in the top-right of the boxes below when you hover or tap.")
         st.write("**URL for ++1 START:**")
         st.code(js_start, language="javascript")
         st.write("**URL for ++2 COPY:**")
@@ -297,33 +298,3 @@ if st.button("Genera File Report Unificato 📄", use_container_width=True):
         mime="text/html",
         use_container_width=True
     )
-# --- FINAL LINE OF APP.PY ---
-components.html(
-    """
-    <script>
-    const forceVisible = () => {
-        const doc = window.parent.document;
-        const buttons = doc.querySelectorAll('button[title="Copy to clipboard"]');
-        buttons.forEach(btn => {
-            btn.style.opacity = "1";
-            btn.style.visibility = "visible";
-            btn.style.display = "block";
-            
-            // Visual style: Light background and Blue icon to stand out
-            btn.style.backgroundColor = "rgba(0, 149, 246, 0.1)"; 
-            btn.style.border = "1px solid rgba(0, 149, 246, 0.3)";
-            btn.style.borderRadius = "4px";
-            
-            const icon = btn.querySelector('svg');
-            if(icon) {
-                icon.style.fill = "#0095f6"; 
-                icon.style.opacity = "1";
-            }
-        });
-    };
-    // Run every second to catch buttons when expanders are opened
-    setInterval(forceVisible, 1000);
-    </script>
-    """,
-    height=0,
-)
