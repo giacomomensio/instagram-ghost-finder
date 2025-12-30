@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import re
 from datetime import datetime
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Instagram Ghost Finder", layout="wide")
 
@@ -77,7 +78,7 @@ with st.expander("🚀 Smart Bookmarks Setup", expanded=False):
     with tab2:
         st.markdown("""
         #### **Setup**
-        1. **Copy the Javascript code** provided below.
+        1. **Tap the icon** in the top-right of the code box below to copy.
         2. **Create a bookmark** for any page in your mobile browser.
         3. Open your **Bookmarks** menu and **Edit** the bookmark.
         4. Change the **Name** to `++1 START` and **Paste** the code into the **URL** (Address) field.
@@ -298,3 +299,51 @@ if st.button("Genera File Report Unificato 📄", use_container_width=True):
         mime="text/html",
         use_container_width=True
     )
+
+# --- FINAL LINE OF APP.PY ---
+components.html(
+    """
+    <script>
+    const styleButtons = () => {
+        const mainDoc = window.parent.document;
+        const copyButtons = mainDoc.querySelectorAll('button[title="Copy to clipboard"]');
+        
+        copyButtons.forEach(btn => {
+            // 1. Style the button directly (natural position)
+            btn.style.opacity = "1";
+            btn.style.visibility = "visible";
+            btn.style.display = "flex";
+            btn.style.alignItems = "center";
+            btn.style.justifyContent = "center";
+            
+            // 2. Background and Border
+            btn.style.backgroundColor = "#d1d5db"; // Darker grey
+            btn.style.border = "1px solid #9ca3af";
+            btn.style.borderRadius = "4px";
+            
+            // 3. Fixed size to keep it neat
+            btn.style.width = "32px";
+            btn.style.height = "32px";
+            
+            // 4. Inject static icon if missing
+            if (!btn.querySelector('.custom-copy-icon')) {
+                // Remove any existing SVG first to avoid overlap
+                const existingSvg = btn.querySelector('svg');
+                if (existingSvg) existingSvg.style.display = 'none';
+
+                const iconSvg = `
+                    <svg class="custom-copy-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#1f2937" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none;">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                `;
+                btn.innerHTML = iconSvg;
+            }
+        });
+    };
+
+    setInterval(styleButtons, 1000);
+    </script>
+    """,
+    height=0,
+)
