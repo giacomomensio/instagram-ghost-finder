@@ -4,6 +4,27 @@ import json
 import re
 from datetime import datetime
 
+# --- CUSTOM CSS TO MAKE COPY BUTTON ALWAYS VISIBLE ---
+st.markdown("""
+    <style>
+        /* Force the copy button to be visible and more accessible on mobile */
+        button[title="Copy to clipboard"] {
+            opacity: 1 !important;
+            visibility: visible !important;
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            border-radius: 4px !important;
+            right: 10px !important;
+            top: 10px !important;
+        }
+        
+        /* Optional: make the code block background slightly different to stand out */
+        .stCodeBlock {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.set_page_config(page_title="Instagram Ghost Finder", layout="wide")
 
 # Funzione per pulire gli username
