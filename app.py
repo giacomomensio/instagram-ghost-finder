@@ -42,36 +42,56 @@ if not fol_file:
     st.info("👈 Per iniziare, carica il file 'followers_1.json' nella barra laterale a sinistra.")
     st.stop() 
 
-# --- SEZIONE SCRIPT ---
-with st.expander("🚀 Istruzioni Segnalibri (Scegli il tuo metodo)", expanded=False):
+# --- SECTION: INSTRUCTIONS ---
+with st.expander("🚀 Smart Bookmarks Setup", expanded=False):
+    st.markdown("""
+    To capture "Likes" and profile links directly from Instagram, use these two smart bookmarks. They work on both Desktop and Mobile browsers.
+    """)
     
-    tab1, tab2 = st.tabs(["🖱️ Metodo Rapido (Trascinamento)", "📑 Metodo Classico (Copia-Incolla)"])
+    tab1, tab2 = st.tabs(["🖥️ Option A: Desktop (Drag & Drop)", "📱 Option B: Mobile (Manual)"])
     
-    js_start = r"""javascript:(function(){window.allProfiles=window.allProfiles||new Set();window.myInterval=setInterval(()=>{document.querySelectorAll('a[role="link"]').forEach(a=>{if(a.href.includes("instagram.com/")&&!a.href.includes("/p/")&&!a.href.includes("/reels/")&&!a.href.includes("/explore/")){window.allProfiles.add(a.href)}});console.log("📊 Profili in memoria: "+window.allProfiles.size)},500);console.log("✅ Script avviato! Scorri la lista.");})();"""
-    js_copy = r"""javascript:(function(){clearInterval(window.myInterval);if(window.allProfiles&&window.allProfiles.size>0){const t=[...window.allProfiles].join('\n');const el=document.createElement('textarea');el.value=t;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);alert("✅ "+window.allProfiles.size+" link copiati!");window.allProfiles=new Set();}else{alert("❌ Nessun profilo catturato.");}})();"""
+    # Codici JavaScript forniti dall'utente
+    js_start = """javascript:(function(){window.allProfiles=window.allProfiles||new Set();window.myInterval=setInterval(()=>{document.querySelectorAll('a[role="link"]').forEach(a=>{if(a.href.includes("instagram.com/")&&!a.href.includes("/p/")&&!a.href.includes("/reels/")&&!a.href.includes("/explore/")){window.allProfiles.add(a.href)}});console.log("📊 Profili in memoria: "+window.allProfiles.size)},500);console.log("✅ Script avviato! Scorri la lista.");})();"""
+    js_copy = """javascript:(function(){     clearInterval(window.myInterval);     if(window.allProfiles && window.allProfiles.size > 0){          const t = [...window.allProfiles].join('\\n');                  /* 1. Tentativo di copia silente (Default) */         const el = document.createElement('textarea');         el.value = t;         el.style.position = 'fixed';         el.style.left = '-9999px';         document.body.appendChild(el);         el.select();         el.setSelectionRange(0, 99999);         const successful = document.execCommand('copy');         document.body.removeChild(el);          if(successful) {             /* Funziona su Chrome/Desktop: mostriamo solo l'alert classico */             alert("%E2%9C%85 " + window.allProfiles.size + " link copiati!");             window.allProfiles = new Set();         } else {             /* 2. Fallback: Pannello grafico solo se la copia fallisce (Firefox Mobile) */             const div = document.createElement('div');             div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;font-family:sans-serif;";                          const area = document.createElement('textarea');             area.value = t;             area.style = "width:100%;max-width:500px;height:300px;padding:10px;border-radius:8px;font-size:14px;border:none;";                          const btnCopy = document.createElement('button');             btnCopy.innerText = "%F0%9F%93%8B COPIA TUTTO";             btnCopy.style = "width:100%;max-width:500px;margin-top:15px;padding:15px;background:#0095f6;color:white;border:none;border-radius:8px;font-weight:bold;";                            btnCopy.onclick = function() {                   area.select();                   area.setSelectionRange(0, 99999);                   if(document.execCommand('copy')) {                       btnCopy.innerText = "%E2%9C%85 COPIATO!";                       btnCopy.style.background = "#00de7a";                       window.allProfiles = new Set();                       setTimeout(() => { document.body.removeChild(div); }, 700);                   }             };             const btnClose = document.createElement('button');             btnClose.innerText = "CHIUDI";             btnClose.style = "margin-top:15px;background:transparent;color:white;border:none;text-decoration:underline;";             btnClose.onclick = function() { document.body.removeChild(div); };              div.appendChild(area);             div.appendChild(btnCopy);             div.appendChild(btnClose);             document.body.appendChild(div);         }      } else {          alert("%E2%9D%8C Nessun profilo catturato.");      } })();"""
 
     with tab1:
         st.markdown("""
-        1. Fai **triplo click** sul codice qui sotto per selezionarlo tutto.
-        2. **Trascina** il testo evidenziato sulla barra dei segnalibri.
-        3. Inserisci il Nome per il segnalibro (es. `1. START` e `2. COPY`).
+        #### **Setup**
+        1. Ensure your browser's **Bookmarks Bar** is visible (`Ctrl+Shift+B`).
+        2. **Triple-click** to select the entire code below.
+        3. **Drag and drop** the highlighted text directly onto your Bookmarks Bar.
+        4. Rename the bookmarks to `++1 START` and `++2 COPY`.
+        
+        #### **How to use**
+        1. Open Instagram on your PC and go to a **Likes list**.
+        2. Click **`++1 START`** in your bar.
+        3. Scroll the list to the end.
+        4. Click **`++2 COPY`** and paste the links in the box below.
         """)
+        st.write("**Code for START:**")
         st.code(js_start, language="javascript")
+        st.write("**Code for COPY:**")
         st.code(js_copy, language="javascript")
 
     with tab2:
         st.markdown("""
-        1. Crea un nuovo segnalibro sulla barra (Tasto destro -> Aggiungi pagina).
-        2. Inserisci il nome (es. `1. START` e `2. COPY`).
-        3. Incolla il codice corrispondente nel campo **URL**.
+        #### **Setup**
+        1. **Copy the Javascript code** provided below.
+        2. **Create a bookmark** for any page in your mobile browser.
+        3. Open your **Bookmarks** menu and **Edit** the bookmark.
+        4. Change the **Name** to `++1 START` and **Paste** the code into the **URL** (Address) field.
+        5. Repeat the process for `++2 COPY`.
+        
+        #### **How to use (The "++" Trick)**
+        1. Open Instagram and go to a **Likes list**.
+        2. Tap the **Address Bar** and type **`++`**.
+        3. Select **`++1 START`**, then scroll the list.
+        4. When done, type **`++`** again and select **`++2 COPY`**.
         """)
-        c1, c2 = st.columns(2)
-        with c1:
-            st.write("**Codice START**")
-            st.code(js_start, language="javascript")
-        with c2:
-            st.write("**Codice COPY**")
-            st.code(js_copy, language="javascript")
+        st.write("**URL for ++1 START:**")
+        st.code(js_start, language="javascript")
+        st.write("**URL for ++2 COPY:**")
+        st.code(js_copy, language="javascript")
 
 # --- LOGICA DATI ---
 fol_data = json.load(fol_file)
