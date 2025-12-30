@@ -163,3 +163,116 @@ if has_following:
     with st.expander(f"🚫 Chi non ti ricambia ({len(not_following_back)})"):
         for user in sorted(not_following_back):
             st.markdown(f"- [@{user}](https://www.instagram.com/{user}/)")
+
+# --- ESPORTAZIONE UNIFICATA OTTIMIZZATA PER MOBILE ---
+def generate_unified_html(df_full, unfollowers):
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    
+    # Prepariamo i dati: creiamo la colonna con lo username cliccabile
+    df_export = df_full.copy()
+    df_export['Username'] = df_export.apply(
+        lambda row: f'<a class="user-link" href="{row["Profilo"]}" target="_blank">@{row["Username"]}</a>', 
+        axis=1
+    )
+    
+    # Rimuoviamo le colonne ridondanti o tecniche
+    df_export = df_export.drop(columns=['Timestamp', 'Profilo'], errors='ignore')
+    
+    # Riordiniamo le colonne per mettere lo Username all'inizio
+    cols = ['Username'] + [c for c in df_export.columns if c != 'Username']
+    df_export = df_export[cols]
+    
+    table_html = df_export.to_html(index=False, escape=False, render_links=True, classes='main-table')
+
+    html = f"""
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{ 
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                margin: 0; padding: 20px; background-color: #fafafa; color: #262626;
+            }}
+            .container {{ max-width: 800px; margin: auto; }}
+            header {{ border-bottom: 1px solid #dbdbdb; margin-bottom: 20px; padding-bottom: 10px; }}
+            h1 {{ font-weight: 300; font-size: 1.8rem; margin: 0; }}
+            h2 {{ font-size: 1.1rem; margin-top: 30px; display: flex; align-items: center; justify-content: space-between; }}
+            .status-tag {{ font-size: 0.75rem; background: #e0e0e0; padding: 3px 10px; border-radius: 15px; font-weight: normal; }}
+            
+            /* Tabella Scorrevole */
+            .table-wrapper {{ 
+                max-height: 500px; overflow-y: auto; background: white;
+                border: 1px solid #dbdbdb; border-radius: 8px;
+            }}
+            .main-table {{ border-collapse: collapse; width: 100%; font-size: 0.95rem; }}
+            .main-table th {{ 
+                background-color: #ffffff; position: sticky; top: 0; z-index: 10; 
+                padding: 12px; border-bottom: 2px solid #dbdbdb; text-align: left;
+            }}
+            .main-table td {{ padding: 12px; border-bottom: 1px solid #f0f0f0; }}
+            
+            /* Link Username Cliccabile */
+            .user-link {{ 
+                color: #0095f6 !important; 
+                text-decoration: none; 
+                font-weight: 600;
+                display: block; /* Aumenta l'area cliccabile su mobile */
+            }}
+            
+            /* Sezione Non Ricambiano */
+            .unfollow-section {{ 
+                background: white; border: 1px solid #dbdbdb; border-radius: 8px; padding: 15px;
+            }}
+            .unfollow-item {{ 
+                display: inline-block; padding: 8px 12px; margin: 4px;
+                background: #fdfdfd; border: 1px solid #efefef; border-radius: 6px;
+            }}
+            .unfollow-item a {{ color: #262626; text-decoration: none; font-size: 0.9rem; }}
+            
+            .meta-info {{ color: #8e8e8e; font-size: 0.8rem; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>Instagram Report</h1>
+                <p class="meta-info">Generato il: {now}</p>
+            </header>
+
+            <h2>📊 Classifica Followers <span class="status-tag">{len(df_export)} totali</span></h2>
+            <div class="table-wrapper">
+                {table_html}
+            </div>
+
+            <h2>🚫 Non Ricambiano <span class="status-tag">{len(unfollowers)} utenti</span></h2>
+            <div class="unfollow-section">
+    """
+    for u in sorted(unfollowers):
+        html += f"""
+            <div class="unfollow-item">
+                <a href="https://www.instagram.com/{u}/" target="_blank"><strong>@{u}</strong></a>
+            </div>
+        """
+    
+    html += """
+            </div>
+            <footer style="margin-top: 40px; text-align: center; color: #dbdbdb; font-size: 0.7rem;">
+                Creato con Instagram Ghost Finder
+            </footer>
+        </div>
+    </body>
+    </html>
+    """
+    return html
+
+st.divider()
+if st.button("Genera File Report Unificato 📄", use_container_width=True):
+    full_html = generate_unified_html(df, not_following_back)
+    st.download_button(
+        label="Scarica Report Completo (HTML)",
+        data=full_html,
+        file_name="report_instagram.html",
+        mime="text/html",
+        use_container_width=True
+    )
